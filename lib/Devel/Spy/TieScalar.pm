@@ -1,10 +1,9 @@
 package Devel::Spy::TieScalar;
 use strict;
 use warnings;
-use Tie::Scalar ();
-our @ISA = 'Tie::Scalar';
 
-use constant { PAYLOAD => 0, CODE => 1, };
+use constant PAYLOAD => 0;
+use constant CODE => 1;
 
 sub TIESCALAR {
     my $class = shift @_;
@@ -34,6 +33,9 @@ sub STORE {
 
     return Devel::Spy->new( $value, $followup );
 }
+
+sub UNTIE {}
+sub DESTROY {}
 
 1;
 

@@ -1,8 +1,9 @@
 package Devel::Spy::TieHandle;
 use strict;
 use warnings;
-use Tie::Scalar;
-our @ISA = 'Tie::Scalar';
+
+sub UNTIE {}
+sub DESTROY {}
 
 1;
 

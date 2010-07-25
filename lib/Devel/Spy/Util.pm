@@ -5,6 +5,7 @@ use warnings;
 use overload     ();
 use Scalar::Util ();
 use Carp         ();
+use Symbol       ();
 
 sub Y {    ## no critic (Prototype)
            # The Y combinator.
@@ -41,18 +42,9 @@ $src
 CODE
 
     ## no critic (Eval)
-    if (wantarray) {
-        my @result = eval $src
-            or Carp::confess "$@ while compiling:\n$src";
-        return @result;
-    }
-    else {
-        my $result = eval $src
-            or Carp::confess "$@ while compiling:\n$src";
-        return $result;
-    }
-
-    # NOT REACHED
+    my $result = eval $src
+        or Carp::confess "$@ while compiling:\n$src";
+    return $result;
 }
 
 my %class_rx_cache;
@@ -90,22 +82,24 @@ sub wrap_thing {
 
     # Return a tied wrapper over $thing.
     if ( 'HASH' eq $reftype ) {
-        tie my %pretend_self, "$class\::TieHash", $thing, $code
-            or Carp::confess;
+        tie my %pretend_self, "$class\::TieHash", $thing, $code;
         return \%pretend_self;
     }
     elsif ( 'ARRAY' eq $reftype ) {
-        tie my @pretend_self, "$class\::TieArray", $thing, $code
-            or Carp::confess;
+        tie my @pretend_self, "$class\::TieArray", $thing, $code;
         return \@pretend_self;
     }
-    elsif ( 'SCALAR' eq $reftype ) {
-        tie my $pretend_self, "$class\::TieScalar", $thing, $code
-            or Carp::confess;
+    elsif ( $reftype =~ /^(?:SCALAR|REF|CODE|LVALUE|REGEXP|VSTRING|BIND)\z/ ) {
+        tie my $pretend_self, "$class\::TieScalar", $thing, $code;
         return \$pretend_self;
     }
+    elsif ( $reftype =~ /^(?:GLOB|FORMAT|IO)\z/ ) {
+        my $pretend_self = Symbol::gensym();
+        tie *$pretend_self, "$class\::TieHandle", $thing, $code;
+        return $pretend_self;
+    }
 
-    # Missing implementations for TIEARRAY and TIEHANDLE.
+    # Missing implementations?
     Carp::croak "Unsupported reftype: $reftype on "
         . overload::StrVal($thing);
 }
